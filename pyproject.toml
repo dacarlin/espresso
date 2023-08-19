@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "coaster"
+version = "0.1.0"
+authors = [
+    {name = "Alex Carlin", email = "alxcarln@gmail.com"},
+]
+description = "Use generative AI to create highly-expressed gene sequences"
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    "biotite",
+]
