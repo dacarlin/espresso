@@ -1,7 +1,11 @@
+import re 
+
 from biotite.sequence import NucleotideSequence 
 from itertools import product
 
 import numpy 
+
+from coaster.data import sc_codon_use 
 
 
 STOP_CODONS = ["TAA", "TAG", "TAA", "TGA"]
@@ -83,4 +87,73 @@ class IndependentEncoder:
         return sequence 
 
 
-        
+class Scrubber:
+    """Uses a codon model to scrub a sequence of undesired characteristics
+    like specific motifs, GC content, etc"""
+
+    def __init__(self, avoid=None):
+        self.avoid = avoid 
+
+    def scrub(self, nucleotide_sequence):
+        # score the sequence with each avoid block 
+        spots = []
+        for thing in self.avoid:
+            my_spots = thing(nucleotide_sequence) 
+            spots.extend(my_spots) 
+        spots = list(set(spots)) 
+        print(spots) 
+
+
+        # now use this list of nucleotide positions to get a list of codons that 
+        # need to be resampled 
+
+        # 
+        #
+        #    sequence  | A A A A A G G G G
+        #   nucleotide | 0 1 2 3 4 5 6 7 8  
+        #        codon | 0 0 0 1 1 1 2 2 2 
+        #              |-------------------|
+        #      spots   | 0       4 5   
+        #  resample    | 0       1 1 
+
+        codons_to_resample = list(set(x // 3 for x in spots))
+        print(codons_to_resample) 
+
+        sequence = CodonSequence(nucleotide_sequence) 
+        model = IndependentEncoder(sc_codon_use)
+
+        new_sequence = ""
+        for idx in range(len(sequence.codons)):
+            if idx in codons_to_resample:
+                residue = translate(sequence.codons[idx])
+                new_codon = model.generate_sequence(residue)
+                new_sequence += new_codon
+            else:
+                new_sequence += sequence.codons[idx] 
+
+        return new_sequence 
+
+
+class AvoidMotif:
+    """Avoid a particular sequence
+    
+    Examples
+    --------
+    To get the positions (base pairs) that are involved in matching
+    the motif you wanna avoid 
+    >>> sequence = "ATGCCCCCC"
+    >>> motif = AvoidMotif("CCCCCC")
+    >>> motif(sequence)  
+    # [3, 4, 5, 6, 7, 8] 
+    """
+    def __init__(self, motif):
+        self.motif = motif 
+    
+    def __call__(self, sequence):
+        # get a list of the positions involved 
+        positions = []
+        for m in re.finditer(self.motif, sequence):
+            my_range = list(range(m.start(), m.start() + len(self.motif)))
+            positions.extend(my_range)
+
+        return list(set(positions))

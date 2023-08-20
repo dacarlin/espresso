@@ -1,1 +1,1 @@
-from coaster.main import encode_sequence 
+from coaster.main import encode_sequence, scrub_sequence

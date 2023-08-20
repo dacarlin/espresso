@@ -1,4 +1,4 @@
-from coaster.lib import IndependentEncoder 
+from coaster.lib import IndependentEncoder, Scrubber
 from coaster.data import sc_codon_use, ec_codon_use, yl_codon_use
 
 
@@ -35,7 +35,29 @@ def encode_sequence(protein_sequence, model="sc"):
     return sequence 
     
 
-def scrub_sequence(nucleotide_sequence, codon_table="sc"):
-    return nucleotide_sequence 
+def scrub_sequence(nucleotide_sequence, avoid, model="sc"):
+    """Scrub a nucleotide sequence of specific motifs or regions of GC content"""
+
+    # process avoid options 
+
+
+    # process model options 
+    choices = {
+        "sc": IndependentEncoder(sc_codon_use), 
+        "ec": IndependentEncoder(ec_codon_use),
+        "yl": IndependentEncoder(yl_codon_use),
+    }
+
+    if model in choices:
+        model = choices[model] 
+    else:
+        raise ValueError(f'Model "{model}" not found')
+
+
+    # scrub 
+    scubber = Scrubber(avoid=avoid)
+    scrubbed = scrubber.scrub(nucleotide_sequence) 
+
+    return scrubbed
 
 
