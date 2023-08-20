@@ -1,4 +1,4 @@
-from coaster.lib import IndependentEncoder, Scrubber
+from coaster.lib import IndependentEncoder, Scrubber, AvoidMotif
 from coaster.data import sc_codon_use, ec_codon_use, yl_codon_use
 
 
@@ -39,7 +39,7 @@ def scrub_sequence(nucleotide_sequence, avoid, model="sc"):
     """Scrub a nucleotide sequence of specific motifs or regions of GC content"""
 
     # process avoid options 
-
+    avoid = [AvoidMotif(x) for x in avoid]
 
     # process model options 
     choices = {
@@ -53,11 +53,10 @@ def scrub_sequence(nucleotide_sequence, avoid, model="sc"):
     else:
         raise ValueError(f'Model "{model}" not found')
 
-
     # scrub 
-    scubber = Scrubber(avoid=avoid)
-    scrubbed = scrubber.scrub(nucleotide_sequence) 
+    scrubber = Scrubber(avoid=avoid, model=model)
 
-    return scrubbed
+    return scrubber.scrub(nucleotide_sequence) 
+
 
 

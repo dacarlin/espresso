@@ -91,42 +91,48 @@ class Scrubber:
     """Uses a codon model to scrub a sequence of undesired characteristics
     like specific motifs, GC content, etc"""
 
-    def __init__(self, avoid=None):
+    def __init__(self, avoid, model):
         self.avoid = avoid 
+        self.model = model 
 
-    def scrub(self, nucleotide_sequence):
-        # score the sequence with each avoid block 
-        spots = []
+    def scrub(self, nucleotide_sequence, max_iterations=50):
+        """For `max_iterations`, attempt to generate a new sequence
+        without any of the undesired features"""
+       
+        iterations = 0 
+        for n in range(max_iterations):
+            nucleotide_sequence = self.resample_sequence(nucleotide_sequence)
+            if not self.identify_codons_to_resample(nucleotide_sequence):
+                return nucleotide_sequence 
+            iterations += 1 
+            if iterations == 50:
+                raise RuntimeError((f"Reached maximum allowed iterations {max_iterations} when"
+                                     "encoding a sequence starting with {nucleotide_sequence[:24]}"
+                                     "with {len(self.avoid)} constraints"))
+
+    def identify_codons_to_resample(self, nucleotide_sequence):
+        bases = []
         for thing in self.avoid:
-            my_spots = thing(nucleotide_sequence) 
-            spots.extend(my_spots) 
-        spots = list(set(spots)) 
-        print(spots) 
+            my_bases = thing(nucleotide_sequence) 
+            bases.extend(my_bases) 
+        bases = list(set(bases)) 
+        codons_to_resample = list(set(x // 3 for x in bases))
+        return codons_to_resample
 
-
-        # now use this list of nucleotide positions to get a list of codons that 
-        # need to be resampled 
-
-        # 
-        #
-        #    sequence  | A A A A A G G G G
-        #   nucleotide | 0 1 2 3 4 5 6 7 8  
-        #        codon | 0 0 0 1 1 1 2 2 2 
-        #              |-------------------|
-        #      spots   | 0       4 5   
-        #  resample    | 0       1 1 
-
-        codons_to_resample = list(set(x // 3 for x in spots))
-        print(codons_to_resample) 
-
+    def resample_sequence(self, nucleotide_sequence):
+        # create a sequence object to get the original codons 
         sequence = CodonSequence(nucleotide_sequence) 
-        model = IndependentEncoder(sc_codon_use)
 
+        # score the sequence with each avoid block 
+        codons_to_resample = self.identify_codons_to_resample(nucleotide_sequence) 
+       
+        # resample the specified codons (or generate a new sequence from the model!) 
+        # probably could rethink this as a "mask" for the model 
         new_sequence = ""
         for idx in range(len(sequence.codons)):
             if idx in codons_to_resample:
                 residue = translate(sequence.codons[idx])
-                new_codon = model.generate_sequence(residue)
+                new_codon = self.model.generate_sequence(residue)
                 new_sequence += new_codon
             else:
                 new_sequence += sequence.codons[idx] 
