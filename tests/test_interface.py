@@ -1,11 +1,11 @@
-import coaster 
+import espresso 
 
 
 protein = "MENFHHRPFKGGFGVGRVPTSLYYSLSDFSLSAISIFPTHYDQPYLNEAPSWYKYSLESGLV"
 
 
 def test_encoding_interface():
-    enc = coaster.encode_sequence(protein, model="sc")
+    enc = espresso.encode_sequence(protein, model="sc")
     assert enc.startswith("ATG")
 
 
@@ -24,6 +24,6 @@ def test_scrubbing_interface():
         "AAAAA", 
         "GAAC", 
     ]
-    enc = coaster.scrub_sequence("AAAAAT", avoid=avoid, model="sc")
+    enc = espresso.scrub_sequence("AAAAAT", avoid=avoid, model="sc")
     assert enc == "AAGAAT"
 

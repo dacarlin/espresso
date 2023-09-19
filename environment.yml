@@ -1,6 +1,5 @@
-name: coaster
+name: espresso
 channels:
   - defaults
 dependencies:
   - python=3
-prefix: /Users/alex/Documents/software/miniconda3/envs/coaster

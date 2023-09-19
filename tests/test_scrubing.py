@@ -1,5 +1,5 @@
-from coaster.lib import Scrubber, AvoidMotif, IndependentEncoder
-from coaster.data import sc_codon_use 
+from espresso.lib import Scrubber, AvoidMotif, IndependentEncoder
+from espresso.data import sc_codon_use 
 
 
 def test_avoid_motif():

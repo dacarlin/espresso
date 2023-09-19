@@ -5,7 +5,7 @@ from collections import Counter
 
 from biotite.sequence.io.fasta import FastaFile 
 
-from coaster.lib import CodonSequence 
+from espresso.lib import CodonSequence 
 
 
 parser = argparse.ArgumentParser()

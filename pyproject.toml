@@ -3,7 +3,7 @@ requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "coaster"
+name = "espresso"
 version = "0.1.0"
 authors = [
     {name = "Alex Carlin", email = "alxcarln@gmail.com"},
