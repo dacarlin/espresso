@@ -2,7 +2,7 @@ from espresso.lib import IndependentEncoder, Scrubber, AvoidMotif
 from espresso.data import sc_codon_use, ec_codon_use, yl_codon_use
 
 
-def encode_sequence(protein_sequence, model="sc"):
+def design_coding_sequence(protein_sequence, model="sc"):
     """Create a gene sequence from a protein sequence
 
     Parameters
@@ -10,13 +10,13 @@ def encode_sequence(protein_sequence, model="sc"):
     protein_sequence: str
         Protein sequence as a string 
     codon_table: str
-        The name of a codon model in Coaster
+        The name of a codon model
 
     Examples
     --------
     An example of encoding a protein 
 
-    >>> encoded = encode_sequence("MMM")
+    >>> encoded = design_coding_sequence("MMM")
     """
 
     choices = {
@@ -57,6 +57,4 @@ def scrub_sequence(nucleotide_sequence, avoid, model="sc"):
     scrubber = Scrubber(avoid=avoid, model=model)
 
     return scrubber.scrub(nucleotide_sequence) 
-
-
 
