@@ -23,6 +23,7 @@ def design_coding_sequence(protein_sequence, model="sc"):
         "sc": IndependentEncoder(sc_codon_use), 
         "ec": IndependentEncoder(ec_codon_use),
         "yl": IndependentEncoder(yl_codon_use),
+        #"fungi-v1": TransformerEncoder(fungi_v1), 
     }
 
     if model in choices:

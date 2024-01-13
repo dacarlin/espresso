@@ -22,7 +22,6 @@ def avoid_two_motifs():
 
     sequence = "AAAAAT"
     assert motif_1(sequence) == [0, 1, 2, 3, 4]
-
     assert motif_2(sequence) == []
 
 

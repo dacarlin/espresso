@@ -1,1 +1,1 @@
-from espresso.main import encode_sequence, scrub_sequence
+from espresso.main import design_coding_sequence, scrub_sequence
