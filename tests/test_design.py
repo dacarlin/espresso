@@ -1,6 +1,6 @@
 import espresso 
 from espresso.data import ec_codon_use, fungi_v1
-from espresso.lib import TopCodonEncoder, IndependentEncoder, TransformerEncoder
+from espresso.lib import TopCodonModel, IndependentModel, TransformerModel
 
 
 protein_1 = "MENFHHRPFKGGFGVGRVPTSLYYSLSDFSLSAISIFPTHYDQPYLNEAPSWYKYSLES"
@@ -8,12 +8,13 @@ protein_2 = "MACDEFGHIKLMNPQRSTVWYMACDEFGHIKLMNPQRSTVWY"
 
 
 def test_top_codon_encoder():
-    model = TopCodonEncoder(ec_codon_use)
+    model = TopCodonModel(ec_codon_use)
     seq = model.generate_sequence(protein_1)
     assert seq[:3] == "ATG"
 
+
 def test_top_codon_encoder():
-    model = IndependentEncoder(ec_codon_use)
+    model = IndependentModel(ec_codon_use)
     seq = model.generate_sequence(protein_1)
     assert seq[:3] == "ATG"
 
@@ -34,6 +35,6 @@ def test_different_built_in_independent_tables():
 
 
 def test_transformer_encoder():
-    model = TransformerEncoder(fungi_v1)
-    seq = model.generate_sequence(protein_2)
+    model = TransformerModel(fungi_v1)
+    seq = model.generate_sequence(protein_1)
     assert seq[:3] == "ATG"

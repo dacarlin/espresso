@@ -1,46 +1,12 @@
 import math
-from itertools import product
 from torch import Tensor
 import torch
 import torch.nn as nn
 from torch.nn import Transformer
-from torchtext.vocab import build_vocab_from_iterator
 import torch.nn.functional as F
 
 DEVICE = torch.device("cpu")
 EOS_IDX = 3 
-
-
-# def create_vocab_and_transforms():
-
-#     protein_vocab = list("ACDEFGHIKLMNPQRSTVWY*")
-#     codon_vocab = list("".join(x) for x in product("ATCG", repeat=3))
-
-#     SRC_LANGUAGE = "protein"
-#     TGT_LANGUAGE = "codons"
-
-#     # Place-holders
-#     token_transform = {}
-#     vocab_transform = {}
-
-#     UNK_IDX, PAD_IDX, BOS_IDX, EOS_IDX = 0, 1, 2, 3
-#     special_symbols = ['<unk>', '<pad>', '<bos>', '<eos>']
-
-#     # first the protein vocab!
-#     vocab_transform[SRC_LANGUAGE] = build_vocab_from_iterator([protein_vocab], min_freq=1, specials=special_symbols, special_first=True)
-
-#     # now the codon vocab!
-#     vocab_transform[TGT_LANGUAGE] = build_vocab_from_iterator([codon_vocab], min_freq=1, specials=special_symbols, special_first=True)
-
-#     for lang in [SRC_LANGUAGE, TGT_LANGUAGE]:
-#         vocab_transform[lang].set_default_index(UNK_IDX)
-
-#     # now the token transforms
-#     token_transform[SRC_LANGUAGE] = lambda x: x.split(" ")
-#     token_transform[TGT_LANGUAGE] = lambda x: x.split(" ")
-
-#     return vocab_transform, token_transform
-
 
 
 # functions for generating the autoregressive mask
