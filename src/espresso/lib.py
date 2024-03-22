@@ -1,11 +1,12 @@
 import re 
-
-from biotite.sequence import NucleotideSequence 
 from itertools import product
 
-import numpy 
+import torch 
+import numpy
+from biotite.sequence import NucleotideSequence 
+from torchtext.vocab import build_vocab_from_iterator
 
-from espresso.data import sc_codon_use 
+from espresso.model import Seq2SeqTransformer
 
 
 STOP_CODONS = ["TAA", "TAG", "TAA", "TGA"]
@@ -48,10 +49,47 @@ class CodonTable:
         self.counts = list(frame["count"])
 
 
-class IndependentEncoder:
+class IndependentModel:
     """Uses codon usage data to create encodings 
     with the same global codon frequency as the 
     input data"""
+
+    def __init__(self, codon_use_data, threshold=0.):
+        # remove stop codons
+        self.codon_use_data = {k: v for k, v in codon_use_data.items() if k not in STOP_CODONS}
+
+        # construct mapping table 
+        self.table = numpy.zeros((20, 64))
+        for codon, count in self.codon_use_data.items():
+            my_codon_index = CODON_TO_INDEX[codon]
+            my_residue_index = RESIDUE_TO_INDEX[translate(codon)]
+            self.table[my_residue_index, my_codon_index] = count 
+
+        # normalize the mapping table by the row 
+        self.table = self.table / self.table.sum(axis=1, keepdims=True)
+
+        # remove entries below threshold 
+        self.table[self.table < threshold] = 0.
+
+        # re-normalize the mapping table by the row 
+        self.table = self.table / self.table.sum(axis=1, keepdims=True)
+
+    def generate_sequence(self, protein_sequence):
+        """Generate a nucletide coding sequence for a provided protein sequence"""
+
+        sequence = ""
+        for residue in protein_sequence:
+            idx = RESIDUE_TO_INDEX[residue]
+            p = self.table[idx]
+            codon = numpy.random.choice(CODONS, p=p)
+            sequence += codon 
+
+        return sequence 
+    
+
+class TopCodonModel:
+    """Uses codon usage data to create encodings 
+    with the single most common codon for each position"""
 
     def __init__(self, codon_use_data):
         # remove stop codons
@@ -70,22 +108,124 @@ class IndependentEncoder:
     def generate_sequence(self, protein_sequence):
         """Generate a nucletide coding sequence for a provided protein sequence"""
 
-        # later, you can use the mapping table to get a probability dist over the 64 possible codons 
-        # get your residue index, idx 
-        # index into the table, p = table[idx]
-        # p is a 64 probability distribution over the amino acids 
-        # pick one, get an index, 32 
-        # get the codon INDEX_TO_CODON[32]
-
         sequence = ""
         for residue in protein_sequence:
             idx = RESIDUE_TO_INDEX[residue]
             p = self.table[idx]
-            codon = numpy.random.choice(CODONS, p=p)
+            codon = CODONS[numpy.argmax(p)]
             sequence += codon 
 
         return sequence 
 
+
+class TransformerModel:
+    """Uses a pre-trained transformer model to design coding sequences"""
+    def __init__(self, model_path):
+
+        protein_vocab = list("ACDEFGHIKLMNPQRSTVWY*")
+        codon_vocab = list("".join(x) for x in product("ATCG", repeat=3))
+
+        SRC_LANGUAGE = "protein"
+        TGT_LANGUAGE = "codons"
+
+        # Place-holders
+        token_transform = {}
+        vocab_transform = {}
+
+        UNK_IDX, PAD_IDX, BOS_IDX, EOS_IDX = 0, 1, 2, 3
+        special_symbols = ['<unk>', '<pad>', '<bos>', '<eos>']
+        self.BOS_IDX = BOS_IDX
+        self.EOS_IDX = EOS_IDX
+
+        # first the protein vocab!
+        vocab_transform[SRC_LANGUAGE] = build_vocab_from_iterator([protein_vocab], min_freq=1, specials=special_symbols, special_first=True)
+
+        # now the codon vocab!
+        vocab_transform[TGT_LANGUAGE] = build_vocab_from_iterator([codon_vocab], min_freq=1, specials=special_symbols, special_first=True)
+
+        for lang in [SRC_LANGUAGE, TGT_LANGUAGE]:
+            vocab_transform[lang].set_default_index(UNK_IDX)
+
+        # now the token transforms
+        token_transform[SRC_LANGUAGE] = lambda x: x.split(" ")
+        token_transform[TGT_LANGUAGE] = lambda x: x.split(" ")
+
+        self.vocab_transform = vocab_transform
+        self.token_transform = token_transform
+
+        # Create a new empty instance of the model 
+        # 
+        # In our training, detailed in `espresso/learn`, we chose 
+        # the following model params:
+        #
+        # encoder layers == decoder layers, 3
+        # model dim, 64 
+        self.model = Seq2SeqTransformer(3, 3, 64, 8, len(vocab_transform[SRC_LANGUAGE]), len(vocab_transform[TGT_LANGUAGE]), 256) 
+
+        # load the specified trained model 
+        state_dict = torch.load(model_path, map_location=torch.device('cpu'))
+        self.model.load_state_dict(state_dict)
+
+        # set in eval mode 
+        self.model.eval() 
+
+    def sequential_transforms(self, *transforms):
+        def func(txt_input):
+            for transform in transforms:
+                txt_input = transform(txt_input)
+            return txt_input
+        return func
+
+    # function to add BOS/EOS and create tensor for input sequence indices
+    def tensor_transform(self, token_ids):
+        return torch.cat((torch.tensor([self.BOS_IDX]),
+                        torch.tensor(token_ids),
+                        torch.tensor([self.EOS_IDX])))
+
+    def generate_sequence(self, protein_sequence, verbose=True):
+        """Generate a CDS for provided protein sequence using a generative model
+        
+        Raises
+        ------
+        AssertionError
+            If, after 5 samples, none of the generated sequences translate to 
+            the provided protein sequence
+        """
+
+        text_transform = {}
+        for ln in ["protein", "codons"]:
+            text_transform[ln] = self.sequential_transforms(self.token_transform[ln], 
+                                                    self.vocab_transform[ln], 
+                                                    self.tensor_transform) 
+        src_sentence = " ".join(protein_sequence) 
+        src = text_transform["protein"](src_sentence).view(-1, 1)
+        num_tokens = src.shape[0]
+        src_mask = (torch.zeros(num_tokens, num_tokens)).type(torch.bool)
+
+        n_iter = 0
+        max_iter = 20
+        while n_iter < max_iter:
+            n_iter += 1
+            tgt_tokens = self.model.sample(src, src_mask, max_len=num_tokens + 1, start_symbol=self.BOS_IDX).flatten() 
+            result = " ".join(self.vocab_transform["codons"].lookup_tokens(list(tgt_tokens.cpu().numpy()))).replace("<bos>", "").replace("<eos>", "")
+            sequence = NucleotideSequence(result.replace(" ", ""))
+            trimmed_sequence = sequence[:num_tokens * 3]
+            translation = trimmed_sequence.translate(complete=True)
+            if str(translation) == str(protein_sequence):
+                break  # break out of the `while` loop 
+
+        if verbose:
+            print("input sequence length including <bos> and <eos>:", len(src))
+            print("raw codons looked up from tokens", result)
+            print("joined sequence", sequence) 
+            print("joined sequence trimmed to length", trimmed_sequence) 
+            print("translation of trimmed sequence", translation) 
+
+        if not str(translation) == str(protein_sequence):
+            raise RuntimeError(f"The model produced a nucleotide sequence that doesn't translate back to the original nucleotide sequence after {max_iter} iterations")
+
+        return str(trimmed_sequence) 
+        
 
 class Scrubber:
     """Uses a codon model to scrub a sequence of undesired characteristics

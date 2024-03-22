@@ -1,4 +1,4 @@
-from espresso.lib import Scrubber, AvoidMotif, IndependentEncoder
+from espresso.lib import Scrubber, AvoidMotif, IndependentModel
 from espresso.data import sc_codon_use 
 
 
@@ -6,7 +6,6 @@ def test_avoid_motif():
     motif = AvoidMotif("AAAAA")
     positions = motif("AAAAAGAAAAGG")
     assert positions == [0, 1, 2, 3, 4] 
-
     positions = motif("GGGAAAAACTCTCTCATAT")
     assert positions == [3, 4, 5, 6, 7] 
 
@@ -14,15 +13,8 @@ def test_avoid_motif():
 def avoid_two_motifs():
     motif_1 = AvoidMotif("AAAAA")
     motif_2 = AvoidMotif("GAAC")
-    
-    motifs = [
-        motif_1, 
-        motif_2, 
-    ]
-
     sequence = "AAAAAT"
     assert motif_1(sequence) == [0, 1, 2, 3, 4]
-
     assert motif_2(sequence) == []
 
 
@@ -41,7 +33,7 @@ def test_scrubber_object():
         AvoidMotif("AAAAA"), 
         AvoidMotif("GAAC"), 
     ]
-    model = IndependentEncoder(sc_codon_use) 
+    model = IndependentModel(sc_codon_use) 
     scrubber = Scrubber(avoid=avoid, model=model)
     result = scrubber.scrub("AAAAAT")  # dipeptide KN
     assert result == "AAGAAT"

@@ -5,7 +5,7 @@ protein = "MENFHHRPFKGGFGVGRVPTSLYYSLSDFSLSAISIFPTHYDQPYLNEAPSWYKYSLESGLV"
 
 
 def test_encoding_interface():
-    enc = espresso.encode_sequence(protein, model="sc")
+    enc = espresso.design_coding_sequence(protein, model="sc")
     assert enc.startswith("ATG")
 
 
