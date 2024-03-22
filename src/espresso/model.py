@@ -6,7 +6,7 @@ from torch.nn import Transformer
 import torch.nn.functional as F
 
 DEVICE = torch.device("cpu")
-EOS_IDX = 3 
+UNK_IDX, PAD_IDX, BOS_IDX, EOS_IDX = 0, 1, 2, 3
 
 
 # functions for generating the autoregressive mask
