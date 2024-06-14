@@ -1,5 +1,0 @@
-name: espresso
-channels:
-  - defaults
-dependencies:
-  - python=3
