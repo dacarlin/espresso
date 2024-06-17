@@ -4,6 +4,7 @@ from itertools import product
 import torch 
 import numpy
 from biotite.sequence import NucleotideSequence 
+import torchtext; torchtext.disable_torchtext_deprecation_warning()
 from torchtext.vocab import build_vocab_from_iterator
 
 from espresso.model import Seq2SeqTransformer
@@ -182,7 +183,7 @@ class TransformerModel:
                         torch.tensor(token_ids),
                         torch.tensor([self.EOS_IDX])))
 
-    def generate_sequence(self, protein_sequence, verbose=True):
+    def generate_sequence(self, protein_sequence, verbose=False):
         """Generate a CDS for provided protein sequence using a generative model
         
         Raises
@@ -215,14 +216,14 @@ class TransformerModel:
                 break  # break out of the `while` loop 
 
         if verbose:
-            print("input sequence length including <bos> and <eos>:", len(src))
-            print("raw codons looked up from tokens", result)
-            print("joined sequence", sequence) 
-            print("joined sequence trimmed to length", trimmed_sequence) 
-            print("translation of trimmed sequence", translation) 
+            print("espresso: input sequence length including <bos> and <eos>:", len(src))
+            print("espresso: raw codons looked up from tokens", result)
+            print("espresso: joined sequence", sequence) 
+            print("espresso: joined sequence trimmed to length", trimmed_sequence) 
+            print("espresso: translation of trimmed sequence", translation) 
 
         if not str(translation) == str(protein_sequence):
-            raise RuntimeError(f"The model produced a nucleotide sequence that doesn't translate back to the original nucleotide sequence after {max_iter} iterations")
+            raise RuntimeError(f"espresso: The model produced a nucleotide sequence that doesn't translate back to the original nucleotide sequence after {max_iter} iterations")
 
         return str(trimmed_sequence) 
         
